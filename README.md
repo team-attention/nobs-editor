@@ -1,8 +1,6 @@
 # JustViewer
 
-Lightweight doc viewer for macOS. Markdown, JSON, YAML, whatever.
-
-I don't write code directly anymore—I just tell the terminal what to do and review docs. Don't need a bloated IDE for that.
+Lightweight doc viewer for macOS. Markdown, JSON, YAML, whatever. No bloated IDE needed.
 
 ## Download
 
