@@ -1,6 +1,8 @@
 # JustViewer
 
-A clean markdown viewer for macOS with Notion-style inline editing.
+Lightweight doc viewer for macOS. Markdown, JSON, YAML, whatever.
+
+I don't write code directly anymore—I just tell the terminal what to do and review docs. Don't need a bloated IDE for that.
 
 ## Download
 
@@ -9,26 +11,22 @@ A clean markdown viewer for macOS with Notion-style inline editing.
 ## How to Use
 
 1. Open JustViewer
+2. Open a file (Cmd+O or drag & drop)
+3. Edit inline if needed
+4. Save (Cmd+S)
 
-2. Open a markdown file (Cmd+O or drag & drop)
+Or right-click any file in Finder → Open With → JustViewer
 
-3. Edit inline - click anywhere to start typing
+## Supported Formats
 
-4. Save changes (Cmd+S)
-
-Or right-click any `.md` file in Finder → Open With → JustViewer
+`.md`, `.markdown`, `.txt`, `.json`, `.yaml`, `.yml`, `.toml`, `.xml`, `.log`, `.ini`, `.cfg`, `.conf`, `.csv`
 
 ## Features
 
-* **Notion-style Editor** - WYSIWYG markdown editing with BlockNote
-
-* **File Association** - Open `.md`, `.markdown`, `.txt`, `.json`, `.yaml`, `.yml`, `.toml`, `.xml`, `.log`, `.ini`, `.cfg`, `.conf`, `.csv` files directly
-
-* **Dark Mode** - Automatic system theme detection
-
+* **Notion-style Editor** - WYSIWYG editing with BlockNote
+* **Dark Mode** - Follows system theme
 * **Keyboard Shortcuts** - Cmd+O (open), Cmd+S (save)
-
-* **Slash Commands** - Type `/` for quick formatting options
+* **Slash Commands** - Type `/` for formatting options
 
 ## Requirements
 
@@ -37,22 +35,15 @@ Or right-click any `.md` file in Finder → Open With → JustViewer
 ## Build
 
 ```bash
-# Install dependencies
 npm install
-
-# Run in development
-npm run tauri dev
-
-# Build for production
-npm run tauri build
+npm run tauri dev      # development
+npm run tauri build    # production
 ```
 
 ## Tech Stack
 
 * [Tauri](https://tauri.app/) - Rust + Web frontend
-
 * [BlockNote](https://www.blocknotejs.org/) - Notion-style editor
-
 * [React](https://react.dev/) - Frontend
 
 ## License
