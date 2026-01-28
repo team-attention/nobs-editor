@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
@@ -122,6 +123,28 @@ function App() {
       unlisten.then(fn => fn());
     };
   }, [loadFile]);
+
+  // Hide window instead of closing (keep app running)
+  useEffect(() => {
+    let unlistenFn: (() => void) | null = null;
+
+    const setupCloseHandler = async () => {
+      const appWindow = getCurrentWindow();
+      unlistenFn = await appWindow.onCloseRequested(async (event) => {
+        console.log("Close requested - hiding instead");
+        event.preventDefault();
+        await appWindow.hide();
+      });
+    };
+
+    setupCloseHandler();
+
+    return () => {
+      if (unlistenFn) {
+        unlistenFn();
+      }
+    };
+  }, []);
 
   return (
     <div id="app">

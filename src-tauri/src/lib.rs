@@ -24,23 +24,28 @@ fn bring_window_to_front(app: &AppHandle) {
     use objc::*;
 
     if let Some(window) = app.get_webview_window("main") {
-        let _ = window.show();
-        let _ = window.set_focus();
-
         if let Ok(ns_window) = window.ns_window() {
             unsafe {
                 let ns_window = ns_window as id;
                 let ns_app: id = cocoa::appkit::NSApp();
 
-                // Ensure app is regular (not accessory or prohibited)
+                // Set collection behavior BEFORE showing:
+                // NSWindowCollectionBehaviorCanJoinAllSpaces = 1 << 0
+                // NSWindowCollectionBehaviorFullScreenAuxiliary = 1 << 8
+                let behavior: u64 = (1 << 0) | (1 << 8);
+                let _: () = msg_send![ns_window, setCollectionBehavior: behavior];
+
+                // Set window level to appear over fullscreen apps
+                let _: () = msg_send![ns_window, setLevel: 101i64];
+
+                // Ensure app is regular
                 ns_app.setActivationPolicy_(NSApplicationActivationPolicy::NSApplicationActivationPolicyRegular);
+
+                // Show and bring to front using NSWindow directly
+                ns_window.makeKeyAndOrderFront_(nil);
 
                 // Force activate
                 let _: () = msg_send![ns_app, activateIgnoringOtherApps: YES];
-
-                // Bring window to current space and front
-                let _: () = msg_send![ns_window, setCanBecomeVisibleWithoutLogin: YES];
-                ns_window.makeKeyAndOrderFront_(nil);
             }
         }
     }
@@ -84,6 +89,34 @@ pub fn run() {
         .manage(OpenedFiles(Mutex::new(Vec::new())))
         .invoke_handler(tauri::generate_handler![get_opened_files, clear_opened_files])
         .setup(|app| {
+            // Handle window close - hide instead of destroy
+            if let Some(window) = app.get_webview_window("main") {
+                // Set window properties at startup
+                #[cfg(target_os = "macos")]
+                {
+                    use cocoa::base::id;
+                    use objc::*;
+
+                    if let Ok(ns_window) = window.ns_window() {
+                        unsafe {
+                            let ns_window = ns_window as id;
+                            // NSWindowCollectionBehaviorCanJoinAllSpaces | NSWindowCollectionBehaviorFullScreenAuxiliary
+                            let behavior: u64 = (1 << 0) | (1 << 8);
+                            let _: () = msg_send![ns_window, setCollectionBehavior: behavior];
+                        }
+                    }
+                }
+
+                let w = window.clone();
+                window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        println!("Rust: Close requested - hiding window");
+                        api.prevent_close();
+                        let _ = w.hide();
+                    }
+                });
+            }
+
             // Check for URLs passed at startup (cold start)
             #[cfg(any(target_os = "macos", target_os = "ios"))]
             {
@@ -119,6 +152,10 @@ pub fn run() {
             }
             RunEvent::Ready => {
                 bring_window_to_front(app_handle);
+            }
+            // Keep app running even when all windows are closed
+            RunEvent::ExitRequested { api, .. } => {
+                api.prevent_exit();
             }
             _ => {}
         }
