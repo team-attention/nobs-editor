@@ -147,6 +147,53 @@ html, body, #root {
   }
 }
 
+/* CodeMirror Editor Container */
+#codemirror-container {
+  height: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+#codemirror-container .cm-editor {
+  height: 100%;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#codemirror-container .cm-editor.cm-focused {
+  outline: none;
+}
+
+#codemirror-container .cm-scroller {
+  overflow: auto;
+}
+
+/* Light mode CodeMirror */
+#codemirror-container .cm-editor {
+  background: var(--bg-secondary);
+}
+
+#codemirror-container .cm-gutters {
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+#codemirror-container .cm-activeLineGutter {
+  background: var(--border-color);
+}
+
+/* Dark mode CodeMirror - oneDark theme handles most styling */
+@media (prefers-color-scheme: dark) {
+  #codemirror-container .cm-editor:not(.cm-focused) {
+    background: var(--bg-secondary);
+  }
+}
+
 /* Utility */
 .hidden {
   display: none !important;

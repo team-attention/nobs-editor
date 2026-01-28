@@ -3,21 +3,51 @@ import { createRoot } from "react-dom/client";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
-import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
+// Use native Rust commands for file I/O (bypass fs plugin scope restrictions)
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/mantine/style.css";
 
+import { EditorView, lineNumbers, highlightActiveLineGutter, keymap } from "@codemirror/view";
+import { EditorState, Extension } from "@codemirror/state";
+import { defaultKeymap, indentWithTab } from "@codemirror/commands";
+import { syntaxHighlighting, defaultHighlightStyle, bracketMatching, foldGutter } from "@codemirror/language";
+import { json } from "@codemirror/lang-json";
+import { yaml } from "@codemirror/lang-yaml";
+import { xml } from "@codemirror/lang-xml";
+import { oneDark } from "@codemirror/theme-one-dark";
+import { highlightSelectionMatches } from "@codemirror/search";
+
 import "./styles.css";
+
+function getFileType(path: string): "markdown" | "code" {
+  const ext = path.split(".").pop()?.toLowerCase() || "";
+  if (ext === "md" || ext === "markdown") return "markdown";
+  return "code";
+}
+
+function getLanguageExtension(filename: string): Extension {
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
+  switch (ext) {
+    case "json": return json();
+    case "yaml": case "yml": return yaml();
+    case "xml": return xml();
+    default: return [];
+  }
+}
 
 function App() {
   const [filename, setFilename] = useState("No file opened");
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [editorReady, setEditorReady] = useState(false);
+  const [fileType, setFileType] = useState<"markdown" | "code">("markdown");
+  const [codeContent, setCodeContent] = useState("");
   const pendingFile = useRef<string | null>(null);
+  const cmContainerRef = useRef<HTMLDivElement>(null);
+  const cmViewRef = useRef<EditorView | null>(null);
 
   const editor = useCreateBlockNote();
 
@@ -34,15 +64,22 @@ function App() {
     }
 
     try {
-      const content = await readTextFile(path);
+      const content = await invoke<string>("read_file", { path });
       setCurrentFilePath(path);
 
       const name = path.split("/").pop() || path;
       setFilename(name);
 
-      // Parse markdown and set content
-      const blocks = await editor.tryParseMarkdownToBlocks(content);
-      editor.replaceBlocks(editor.document, blocks);
+      const type = getFileType(path);
+      setFileType(type);
+
+      if (type === "markdown") {
+        // Parse markdown and set content
+        const blocks = await editor.tryParseMarkdownToBlocks(content);
+        editor.replaceBlocks(editor.document, blocks);
+      } else {
+        setCodeContent(content);
+      }
 
       setShowEditor(true);
     } catch (error) {
@@ -50,6 +87,54 @@ function App() {
       setFilename("Error loading file");
     }
   }, [editor, editorReady]);
+
+  // CodeMirror setup effect
+  useEffect(() => {
+    if (fileType !== "code" || !showEditor) return;
+
+    // Wait for the container to be rendered
+    const timer = setTimeout(() => {
+      if (!cmContainerRef.current) return;
+
+      // Destroy previous instance
+      cmViewRef.current?.destroy();
+      cmViewRef.current = null;
+
+      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+      const extensions: Extension[] = [
+        lineNumbers(),
+        highlightActiveLineGutter(),
+        foldGutter(),
+        bracketMatching(),
+        highlightSelectionMatches(),
+        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+        getLanguageExtension(filename),
+        keymap.of([...defaultKeymap, indentWithTab]),
+        EditorView.lineWrapping,
+      ];
+
+      if (isDark) {
+        extensions.push(oneDark);
+      }
+
+      const view = new EditorView({
+        state: EditorState.create({
+          doc: codeContent,
+          extensions,
+        }),
+        parent: cmContainerRef.current,
+      });
+
+      cmViewRef.current = view;
+    }, 0);
+
+    return () => {
+      clearTimeout(timer);
+      cmViewRef.current?.destroy();
+      cmViewRef.current = null;
+    };
+  }, [fileType, codeContent, showEditor, filename]);
 
   // Process pending file when editor becomes ready
   useEffect(() => {
@@ -76,16 +161,21 @@ function App() {
   }, [loadFile]);
 
   const saveFile = useCallback(async () => {
-    if (!currentFilePath || !editor) return;
+    if (!currentFilePath) return;
 
     try {
-      const markdown = await editor.blocksToMarkdownLossy(editor.document);
-      await writeTextFile(currentFilePath, markdown);
+      if (fileType === "code") {
+        const content = cmViewRef.current?.state.doc.toString() || "";
+        await invoke("write_file", { path: currentFilePath, content });
+      } else {
+        const markdown = await editor.blocksToMarkdownLossy(editor.document);
+        await invoke("write_file", { path: currentFilePath, content: markdown });
+      }
       console.log("File saved");
     } catch (error) {
       console.error("Failed to save file:", error);
     }
-  }, [currentFilePath, editor]);
+  }, [currentFilePath, editor, fileType]);
 
   useEffect(() => {
     // Keyboard shortcuts
@@ -169,13 +259,15 @@ function App() {
               <line x1="16" y1="17" x2="8" y2="17"/>
               <polyline points="10,9 9,9 8,9"/>
             </svg>
-            <p>Open a markdown file to get started</p>
+            <p>Open a file to get started</p>
             <button id="empty-open-btn" onClick={openFile}>Open File</button>
           </div>
-        ) : (
+        ) : fileType === "markdown" ? (
           <div id="editor-container">
-            <BlockNoteView editor={editor} theme="light" />
+            <BlockNoteView editor={editor} />
           </div>
+        ) : (
+          <div id="codemirror-container" ref={cmContainerRef} />
         )}
       </main>
     </div>

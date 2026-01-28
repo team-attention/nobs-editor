@@ -1,6 +1,6 @@
 [package]
 name = "justviewer"
-version = "0.1.0"
+version = "0.3.0"
 description = "A markdown file viewer that floats above fullscreen apps"
 authors = ["eatnug"]
 edition = "2021"
