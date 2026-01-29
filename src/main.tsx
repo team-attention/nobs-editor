@@ -28,7 +28,7 @@ import { sql } from "@codemirror/lang-sql";
 import { StreamLanguage } from "@codemirror/language";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { highlightSelectionMatches } from "@codemirror/search";
+import { highlightSelectionMatches, SearchQuery, search, findNext, findPrevious, setSearchQuery, getSearchQuery } from "@codemirror/search";
 
 import "./styles.css";
 
@@ -114,6 +114,25 @@ function getFileType(path: string): "markdown" | "code" {
   return "code";
 }
 
+// Helper function to extract text from BlockNote blocks (defined outside component to avoid recreation)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractTextFromBlock(block: any): string {
+  let text = "";
+  if (block.content && Array.isArray(block.content)) {
+    for (const inline of block.content) {
+      if (typeof inline === "object" && "text" in inline) {
+        text += inline.text;
+      }
+    }
+  }
+  if (block.children) {
+    for (const child of block.children) {
+      text += extractTextFromBlock(child);
+    }
+  }
+  return text + "\n";
+}
+
 function getLanguageExtension(filename: string): Extension {
   const ext = filename.split(".").pop()?.toLowerCase() || "";
   switch (ext) {
@@ -172,6 +191,11 @@ function App() {
   const stylePanelRef = useRef<HTMLDivElement>(null);
   const [frontmatter, setFrontmatter] = useState<FrontmatterData>({});
   const [showFrontmatter, setShowFrontmatter] = useState(true);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQueryState] = useState("");
+  const [searchMatchCount, setSearchMatchCount] = useState(0);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useCreateBlockNote();
 
@@ -235,6 +259,7 @@ function App() {
         foldGutter(),
         bracketMatching(),
         highlightSelectionMatches(),
+        search({ top: true }),
         syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
         getLanguageExtension(filename),
         keymap.of([...defaultKeymap, indentWithTab]),
@@ -310,24 +335,6 @@ function App() {
       console.error("Failed to save file:", error);
     }
   }, [currentFilePath, editor, fileType]);
-
-  useEffect(() => {
-    // Keyboard shortcuts
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey) {
-        if (e.key === "o") {
-          e.preventDefault();
-          openFile();
-        } else if (e.key === "s") {
-          e.preventDefault();
-          saveFile();
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [openFile, saveFile]);
 
   useEffect(() => {
     // Read file path from URL query parameter (passed by Rust backend)
@@ -435,6 +442,127 @@ function App() {
   const frontmatterEntries = Object.entries(frontmatter);
   const hasFrontmatter = frontmatterEntries.length > 0;
 
+  // Search functionality
+  const performSearch = useCallback((query: string) => {
+    setSearchQueryState(query);
+
+    if (!query) {
+      setSearchMatchCount(0);
+      setCurrentMatchIndex(0);
+      // Clear CodeMirror search
+      if (fileType === "code" && cmViewRef.current) {
+        cmViewRef.current.dispatch({
+          effects: setSearchQuery.of(new SearchQuery({ search: "" }))
+        });
+      }
+      return;
+    }
+
+    if (fileType === "code" && cmViewRef.current) {
+      // CodeMirror search
+      const searchQueryObj = new SearchQuery({ search: query, caseSensitive: false });
+      cmViewRef.current.dispatch({
+        effects: setSearchQuery.of(searchQueryObj)
+      });
+
+      // Count matches
+      const cursor = searchQueryObj.getCursor(cmViewRef.current.state);
+      let count = 0;
+      while (!cursor.next().done) count++;
+      setSearchMatchCount(count);
+      setCurrentMatchIndex(count > 0 ? 1 : 0);
+
+      // Move to first match
+      if (count > 0) {
+        findNext(cmViewRef.current);
+      }
+    } else if (fileType === "markdown") {
+      // BlockNote search - get text content and count matches
+      const blocks = editor.document;
+      let totalText = "";
+      for (const block of blocks) {
+        totalText += extractTextFromBlock(block);
+      }
+
+      const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+      const matches = totalText.match(regex);
+      const count = matches ? matches.length : 0;
+      setSearchMatchCount(count);
+      setCurrentMatchIndex(count > 0 ? 1 : 0);
+    }
+  }, [fileType, editor]);
+
+  const navigateSearch = useCallback((direction: "next" | "prev") => {
+    if (searchMatchCount === 0) return;
+
+    // CodeMirror-specific navigation
+    if (fileType === "code" && cmViewRef.current) {
+      if (direction === "next") {
+        findNext(cmViewRef.current);
+      } else {
+        findPrevious(cmViewRef.current);
+      }
+    }
+
+    // Update index for visual feedback (applies to both editor types)
+    if (direction === "next") {
+      setCurrentMatchIndex(prev => prev >= searchMatchCount ? 1 : prev + 1);
+    } else {
+      setCurrentMatchIndex(prev => prev <= 1 ? searchMatchCount : prev - 1);
+    }
+  }, [fileType, searchMatchCount]);
+
+  const toggleSearch = useCallback(() => {
+    setShowSearch(prev => {
+      const willShow = !prev;
+      if (!willShow) {
+        // Cleanup when hiding search
+        setSearchQueryState("");
+        setSearchMatchCount(0);
+        setCurrentMatchIndex(0);
+        if (fileType === "code" && cmViewRef.current) {
+          cmViewRef.current.dispatch({
+            effects: setSearchQuery.of(new SearchQuery({ search: "" }))
+          });
+        }
+      }
+      return willShow;
+    });
+  }, [fileType]);
+
+  // Focus search input when search bar opens
+  useEffect(() => {
+    if (showSearch) {
+      searchInputRef.current?.focus();
+    }
+  }, [showSearch]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && showSearch) {
+        e.preventDefault();
+        toggleSearch();
+        return;
+      }
+      if (e.metaKey || e.ctrlKey) {
+        if (e.key === "o") {
+          e.preventDefault();
+          openFile();
+        } else if (e.key === "s") {
+          e.preventDefault();
+          saveFile();
+        } else if (e.key === "f") {
+          e.preventDefault();
+          toggleSearch();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [openFile, saveFile, showSearch, toggleSearch]);
+
   return (
     <div id="app">
       <header id="toolbar">
@@ -444,6 +572,60 @@ function App() {
           </svg>
         </button>
         <span id="filename">{filename}</span>
+        {showEditor && showSearch && (
+          <div className="search-bar">
+            <div className="style-separator" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              className="search-input"
+              placeholder="Find..."
+              value={searchQuery}
+              onChange={(e) => performSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  navigateSearch(e.shiftKey ? "prev" : "next");
+                }
+              }}
+            />
+            {searchQuery && (
+              <span className="search-count">
+                {searchMatchCount > 0 ? `${currentMatchIndex}/${searchMatchCount}` : "0"}
+              </span>
+            )}
+            <button
+              className="search-nav-btn"
+              onClick={() => navigateSearch("prev")}
+              title="Previous match (Shift+Enter)"
+              disabled={searchMatchCount === 0}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="18,15 12,9 6,15" />
+              </svg>
+            </button>
+            <button
+              className="search-nav-btn"
+              onClick={() => navigateSearch("next")}
+              title="Next match (Enter)"
+              disabled={searchMatchCount === 0}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="6,9 12,15 18,9" />
+              </svg>
+            </button>
+            <button
+              className="search-nav-btn"
+              onClick={toggleSearch}
+              title="Close search (Escape)"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        )}
         {showEditor && (
           <div className="inline-style-bar">
             <div className="style-separator" />
