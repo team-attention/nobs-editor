@@ -205,7 +205,7 @@ html, body, #root {
   height: 100%;
   max-width: 900px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 40px 20px 80px 20px;
 }
 
 /* BlockNote overrides for cleaner look */
@@ -213,21 +213,21 @@ html, body, #root {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
 }
 
-/* Block-type font size customization */
-#editor-container [data-content-type="heading"][data-level="1"] {
-  font-size: var(--h1-size, 28px) !important;
+/* Block-type font size customization - using higher specificity to override BlockNote styles */
+#editor-container .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="1"] {
+  font-size: var(--h1-size, 28px);
 }
 
-#editor-container [data-content-type="heading"][data-level="2"] {
-  font-size: var(--h2-size, 22px) !important;
+#editor-container .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="2"] {
+  font-size: var(--h2-size, 22px);
 }
 
-#editor-container [data-content-type="heading"][data-level="3"] {
-  font-size: var(--h3-size, 18px) !important;
+#editor-container .bn-block-outer > .bn-block > .bn-block-content[data-content-type="heading"][data-level="3"] {
+  font-size: var(--h3-size, 18px);
 }
 
-#editor-container [data-content-type="paragraph"] {
-  font-size: var(--p-size, 15px) !important;
+#editor-container .bn-block-outer > .bn-block > .bn-block-content[data-content-type="paragraph"] {
+  font-size: var(--p-size, 15px);
 }
 
 /* Dark mode support for BlockNote */
