@@ -1,6 +1,6 @@
 [package]
 name = "nobs_editor"
-version = "0.4.0"
+version = "0.4.1"
 description = "A markdown file viewer that floats above fullscreen apps"
 authors = ["eatnug"]
 edition = "2021"
