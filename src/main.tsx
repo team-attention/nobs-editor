@@ -32,6 +32,65 @@ import { highlightSelectionMatches } from "@codemirror/search";
 
 import "./styles.css";
 
+// Frontmatter parsing utilities
+interface FrontmatterData {
+  [key: string]: string;
+}
+
+interface ParsedContent {
+  frontmatter: FrontmatterData;
+  body: string;
+  rawFrontmatter: string;
+}
+
+function parseFrontmatter(content: string): ParsedContent {
+  const frontmatterRegex = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
+  const match = content.match(frontmatterRegex);
+
+  if (!match) {
+    return { frontmatter: {}, body: content, rawFrontmatter: "" };
+  }
+
+  const rawFrontmatter = match[1];
+  const body = content.slice(match[0].length);
+  const frontmatter: FrontmatterData = {};
+
+  // Parse simple key: value pairs (handles strings, numbers, booleans)
+  const lines = rawFrontmatter.split(/\r?\n/);
+  for (const line of lines) {
+    const colonIndex = line.indexOf(":");
+    if (colonIndex > 0) {
+      const key = line.slice(0, colonIndex).trim();
+      let value = line.slice(colonIndex + 1).trim();
+      // Remove surrounding quotes if present and handle escaped quotes
+      if (value.startsWith('"') && value.endsWith('"')) {
+        value = value.slice(1, -1).replace(/\\"/g, '"');
+      } else if (value.startsWith("'") && value.endsWith("'")) {
+        value = value.slice(1, -1);
+      }
+      frontmatter[key] = value;
+    }
+  }
+
+  return { frontmatter, body, rawFrontmatter };
+}
+
+function serializeFrontmatter(frontmatter: FrontmatterData): string {
+  const entries = Object.entries(frontmatter);
+  if (entries.length === 0) return "";
+
+  const lines = entries.map(([key, value]) => {
+    // Quote values that contain special characters
+    if (value.includes(":") || value.includes("#") || value.includes("\n") ||
+        value.startsWith(" ") || value.endsWith(" ")) {
+      return `${key}: "${value.replace(/"/g, '\\"')}"`;
+    }
+    return `${key}: ${value}`;
+  });
+
+  return `---\n${lines.join("\n")}\n---\n`;
+}
+
 // Block styles customization
 interface BlockStyles {
   h1Size: number;
@@ -109,6 +168,10 @@ function App() {
   const cmContainerRef = useRef<HTMLDivElement>(null);
   const cmViewRef = useRef<EditorView | null>(null);
   const [blockStyles, setBlockStyles] = useState<BlockStyles>(DEFAULT_BLOCK_STYLES);
+  const [showStylePanel, setShowStylePanel] = useState(false);
+  const stylePanelRef = useRef<HTMLDivElement>(null);
+  const [frontmatter, setFrontmatter] = useState<FrontmatterData>({});
+  const [showFrontmatter, setShowFrontmatter] = useState(true);
 
   const editor = useCreateBlockNote();
 
@@ -135,10 +198,13 @@ function App() {
       setFileType(type);
 
       if (type === "markdown") {
-        // Parse markdown and set content
-        const blocks = await editor.tryParseMarkdownToBlocks(content);
+        // Parse frontmatter and markdown content
+        const parsed = parseFrontmatter(content);
+        setFrontmatter(parsed.frontmatter);
+        const blocks = await editor.tryParseMarkdownToBlocks(parsed.body);
         editor.replaceBlocks(editor.document, blocks);
       } else {
+        setFrontmatter({});
         setCodeContent(content);
       }
 
@@ -236,7 +302,8 @@ function App() {
         await invoke("write_file", { path: currentFilePath, content });
       } else {
         const markdown = await editor.blocksToMarkdownLossy(editor.document);
-        await invoke("write_file", { path: currentFilePath, content: markdown });
+        const frontmatterStr = serializeFrontmatter(frontmatter);
+        await invoke("write_file", { path: currentFilePath, content: frontmatterStr + markdown });
       }
       console.log("File saved");
     } catch (error) {
@@ -329,6 +396,45 @@ function App() {
     "--code-size": `${blockStyles.codeSize}px`,
   } as React.CSSProperties;
 
+  const updateFrontmatter = (key: string, value: string) => {
+    setFrontmatter(prev => ({ ...prev, [key]: value }));
+  };
+
+  const addFrontmatterProperty = () => {
+    let i = 1;
+    let newKey = "new-property";
+    while (Object.prototype.hasOwnProperty.call(frontmatter, newKey)) {
+      newKey = `new-property-${i++}`;
+    }
+    setFrontmatter(prev => ({ ...prev, [newKey]: "" }));
+  };
+
+  const removeFrontmatterProperty = (key: string) => {
+    setFrontmatter(prev => {
+      const updated = { ...prev };
+      delete updated[key];
+      return updated;
+    });
+  };
+
+  const renameFrontmatterKey = (oldKey: string, newKey: string) => {
+    if (oldKey === newKey || !newKey.trim()) return;
+    setFrontmatter(prev => {
+      if (Object.prototype.hasOwnProperty.call(prev, newKey)) {
+        return prev; // newKey already exists, abort
+      }
+      const entries = Object.entries(prev);
+      const updated: FrontmatterData = {};
+      for (const [k, v] of entries) {
+        updated[k === oldKey ? newKey : k] = v;
+      }
+      return updated;
+    });
+  };
+
+  const frontmatterEntries = Object.entries(frontmatter);
+  const hasFrontmatter = frontmatterEntries.length > 0;
+
   return (
     <div id="app">
       <header id="toolbar">
@@ -372,6 +478,65 @@ function App() {
           </div>
         ) : fileType === "markdown" ? (
           <div id="editor-container" style={blockStyleVars}>
+            <div className="frontmatter-panel">
+              <button
+                className="frontmatter-toggle"
+                onClick={() => setShowFrontmatter(!showFrontmatter)}
+                title={showFrontmatter ? "Collapse properties" : "Expand properties"}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  style={{ transform: showFrontmatter ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.15s" }}
+                >
+                  <polyline points="9,18 15,12 9,6" />
+                </svg>
+                <span>Properties {hasFrontmatter ? `(${frontmatterEntries.length})` : ""}</span>
+              </button>
+              {showFrontmatter && (
+                <div className="frontmatter-content">
+                  {frontmatterEntries.map(([key, value], index) => (
+                    <div key={index} className="frontmatter-row">
+                      <input
+                        type="text"
+                        className="frontmatter-key"
+                        value={key}
+                        onChange={(e) => renameFrontmatterKey(key, e.target.value)}
+                        placeholder="key"
+                      />
+                      <input
+                        type="text"
+                        className="frontmatter-value"
+                        value={value}
+                        onChange={(e) => updateFrontmatter(key, e.target.value)}
+                        placeholder="value"
+                      />
+                      <button
+                        className="frontmatter-delete"
+                        onClick={() => removeFrontmatterProperty(key)}
+                        title="Remove property"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18" />
+                          <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                  <button className="frontmatter-add" onClick={addFrontmatterProperty}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                    Add property
+                  </button>
+                </div>
+              )}
+            </div>
             <BlockNoteView editor={editor} />
           </div>
         ) : (
