@@ -83,6 +83,93 @@ html, body, #root {
   flex: 1;
 }
 
+/* Style settings button and panel */
+.toolbar-style-wrapper {
+  position: relative;
+  -webkit-app-region: no-drag;
+}
+
+#style-settings-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+#style-settings-btn:hover {
+  background: var(--border-color);
+  color: var(--text-primary);
+}
+
+.style-panel {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  padding: 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 200px;
+}
+
+.style-panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.style-panel label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.style-panel label:last-child {
+  margin-bottom: 0;
+}
+
+.style-panel label span {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.style-panel input[type="number"] {
+  width: 60px;
+  padding: 4px 8px;
+  font-size: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.style-panel input[type="number"]:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+@media (prefers-color-scheme: dark) {
+  .style-panel {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+}
+
 /* Content area */
 #content {
   flex: 1;
@@ -139,6 +226,23 @@ html, body, #root {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
 }
 
+/* Block-type font size customization */
+#editor-container [data-content-type="heading"][data-level="1"] {
+  font-size: var(--h1-size, 28px) !important;
+}
+
+#editor-container [data-content-type="heading"][data-level="2"] {
+  font-size: var(--h2-size, 22px) !important;
+}
+
+#editor-container [data-content-type="heading"][data-level="3"] {
+  font-size: var(--h3-size, 18px) !important;
+}
+
+#editor-container [data-content-type="paragraph"] {
+  font-size: var(--p-size, 15px) !important;
+}
+
 /* Dark mode support for BlockNote */
 @media (prefers-color-scheme: dark) {
   .bn-container {
@@ -158,7 +262,7 @@ html, body, #root {
 #codemirror-container .cm-editor {
   height: 100%;
   font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
-  font-size: 14px;
+  font-size: var(--code-size, 14px);
   line-height: 1.5;
   border-radius: 8px;
   overflow: hidden;

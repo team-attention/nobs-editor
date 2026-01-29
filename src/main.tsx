@@ -31,6 +31,23 @@ import { highlightSelectionMatches } from "@codemirror/search";
 
 import "./styles.css";
 
+// Block styles customization
+interface BlockStyles {
+  h1Size: number;
+  h2Size: number;
+  h3Size: number;
+  paragraphSize: number;
+  codeSize: number;
+}
+
+const DEFAULT_BLOCK_STYLES: BlockStyles = {
+  h1Size: 28,
+  h2Size: 22,
+  h3Size: 18,
+  paragraphSize: 15,
+  codeSize: 14,
+};
+
 function getFileType(path: string): "markdown" | "code" {
   const ext = path.split(".").pop()?.toLowerCase() || "";
   if (ext === "md" || ext === "markdown") return "markdown";
@@ -67,6 +84,9 @@ function App() {
   const pendingFile = useRef<string | null>(null);
   const cmContainerRef = useRef<HTMLDivElement>(null);
   const cmViewRef = useRef<EditorView | null>(null);
+  const [blockStyles, setBlockStyles] = useState<BlockStyles>(DEFAULT_BLOCK_STYLES);
+  const [showStylePanel, setShowStylePanel] = useState(false);
+  const stylePanelRef = useRef<HTMLDivElement>(null);
 
   const editor = useCreateBlockNote();
 
@@ -251,6 +271,32 @@ function App() {
     };
   }, []);
 
+  // Close style panel when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (showStylePanel && stylePanelRef.current && !stylePanelRef.current.contains(e.target as Node)) {
+        const btn = document.getElementById("style-settings-btn");
+        if (btn && !btn.contains(e.target as Node)) {
+          setShowStylePanel(false);
+        }
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showStylePanel]);
+
+  const updateBlockStyle = (key: keyof BlockStyles, value: number) => {
+    setBlockStyles(prev => ({ ...prev, [key]: value }));
+  };
+
+  const blockStyleVars = {
+    "--h1-size": `${blockStyles.h1Size}px`,
+    "--h2-size": `${blockStyles.h2Size}px`,
+    "--h3-size": `${blockStyles.h3Size}px`,
+    "--p-size": `${blockStyles.paragraphSize}px`,
+    "--code-size": `${blockStyles.codeSize}px`,
+  } as React.CSSProperties;
+
   return (
     <div id="app">
       <header id="toolbar">
@@ -260,6 +306,73 @@ function App() {
           </svg>
         </button>
         <span id="filename">{filename}</span>
+        <div className="toolbar-style-wrapper">
+          <button
+            id="style-settings-btn"
+            title="Style Settings"
+            onClick={() => setShowStylePanel(!showStylePanel)}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
+            </svg>
+          </button>
+          {showStylePanel && (
+            <div className="style-panel" ref={stylePanelRef}>
+              <div className="style-panel-title">Font Sizes</div>
+              <label>
+                <span>Heading 1</span>
+                <input
+                  type="number"
+                  value={blockStyles.h1Size}
+                  onChange={(e) => updateBlockStyle("h1Size", Number(e.target.value))}
+                  min="10"
+                  max="72"
+                />
+              </label>
+              <label>
+                <span>Heading 2</span>
+                <input
+                  type="number"
+                  value={blockStyles.h2Size}
+                  onChange={(e) => updateBlockStyle("h2Size", Number(e.target.value))}
+                  min="10"
+                  max="72"
+                />
+              </label>
+              <label>
+                <span>Heading 3</span>
+                <input
+                  type="number"
+                  value={blockStyles.h3Size}
+                  onChange={(e) => updateBlockStyle("h3Size", Number(e.target.value))}
+                  min="10"
+                  max="72"
+                />
+              </label>
+              <label>
+                <span>Paragraph</span>
+                <input
+                  type="number"
+                  value={blockStyles.paragraphSize}
+                  onChange={(e) => updateBlockStyle("paragraphSize", Number(e.target.value))}
+                  min="10"
+                  max="72"
+                />
+              </label>
+              <label>
+                <span>Code</span>
+                <input
+                  type="number"
+                  value={blockStyles.codeSize}
+                  onChange={(e) => updateBlockStyle("codeSize", Number(e.target.value))}
+                  min="10"
+                  max="72"
+                />
+              </label>
+            </div>
+          )}
+        </div>
         <div className="spacer"></div>
       </header>
 
@@ -277,11 +390,11 @@ function App() {
             <button id="empty-open-btn" onClick={openFile}>Open File</button>
           </div>
         ) : fileType === "markdown" ? (
-          <div id="editor-container">
+          <div id="editor-container" style={blockStyleVars}>
             <BlockNoteView editor={editor} />
           </div>
         ) : (
-          <div id="codemirror-container" ref={cmContainerRef} />
+          <div id="codemirror-container" ref={cmContainerRef} style={blockStyleVars} />
         )}
       </main>
     </div>
