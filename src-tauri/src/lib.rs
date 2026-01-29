@@ -1,7 +1,11 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::{AppHandle, Emitter, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::TrayIconBuilder,
+    AppHandle, Emitter, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder,
+};
 
 // Track which file is open in which window (file_path -> window_label)
 struct OpenWindows(Mutex<HashMap<String, String>>);
@@ -157,6 +161,21 @@ pub fn run() {
         .setup(|app| {
             // LSUIElement in Info.plist makes this a background app (no dock icon, no space switching)
             // Windows are created on demand
+
+            // Create tray icon with quit menu
+            let quit_item = MenuItem::with_id(app, "quit", "Quit Nobs Editor", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&quit_item])?;
+
+            let _tray = TrayIconBuilder::new()
+                .icon(app.default_window_icon().ok_or("Default window icon not found")?.clone())
+                .menu(&menu)
+                .show_menu_on_left_click(true)
+                .on_menu_event(|app, event| {
+                    if event.id.as_ref() == "quit" {
+                        app.exit(0);
+                    }
+                })
+                .build(app)?;
 
             // Check for URLs passed at startup (cold start)
             #[cfg(any(target_os = "macos", target_os = "ios"))]
