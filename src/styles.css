@@ -83,91 +83,74 @@ html, body, #root {
   flex: 1;
 }
 
-/* Style settings button and panel */
-.toolbar-style-wrapper {
-  position: relative;
+/* Inline style bar */
+.inline-style-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   -webkit-app-region: no-drag;
 }
 
-#style-settings-btn {
+.style-separator {
+  width: 1px;
+  height: 20px;
+  background: var(--border-color);
+  margin: 0 4px;
+}
+
+.style-control {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.style-control:hover {
+  opacity: 1;
+}
+
+.style-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 24px;
+  text-align: center;
+}
+
+.style-value {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 20px;
+  text-align: center;
+}
+
+.style-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 20px;
+  height: 20px;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   background: transparent;
   color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  -webkit-app-region: no-drag;
 }
 
-#style-settings-btn:hover {
+.style-btn:hover {
   background: var(--border-color);
   color: var(--text-primary);
 }
 
-.style-panel {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 8px;
-  padding: 16px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  min-width: 200px;
-}
-
-.style-panel-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 12px;
-}
-
-.style-panel label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.style-panel label:last-child {
-  margin-bottom: 0;
-}
-
-.style-panel label span {
-  font-size: 14px;
-  color: var(--text-primary);
-}
-
-.style-panel input[type="number"] {
-  width: 60px;
-  padding: 4px 8px;
-  font-size: 14px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  text-align: right;
-}
-
-.style-panel input[type="number"]:focus {
-  outline: none;
-  border-color: var(--accent-color);
-}
-
-@media (prefers-color-scheme: dark) {
-  .style-panel {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  }
+.style-btn:active {
+  background: var(--accent-color);
+  color: white;
 }
 
 /* Content area */

@@ -75,6 +75,29 @@ function getLanguageExtension(filename: string): Extension {
   }
 }
 
+// Inline style control component for a single style property
+interface StyleControlProps {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  min?: number;
+  max?: number;
+}
+
+function StyleControl({ label, value, onChange, min = 10, max = 72 }: StyleControlProps) {
+  const decrement = () => onChange(Math.max(min, value - 1));
+  const increment = () => onChange(Math.min(max, value + 1));
+
+  return (
+    <div className="style-control">
+      <span className="style-label">{label}</span>
+      <button className="style-btn" onClick={decrement} title={`Decrease ${label} size`}>−</button>
+      <span className="style-value">{value}</span>
+      <button className="style-btn" onClick={increment} title={`Increase ${label} size`}>+</button>
+    </div>
+  );
+}
+
 function App() {
   const [filename, setFilename] = useState("No file opened");
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
@@ -86,8 +109,6 @@ function App() {
   const cmContainerRef = useRef<HTMLDivElement>(null);
   const cmViewRef = useRef<EditorView | null>(null);
   const [blockStyles, setBlockStyles] = useState<BlockStyles>(DEFAULT_BLOCK_STYLES);
-  const [showStylePanel, setShowStylePanel] = useState(false);
-  const stylePanelRef = useRef<HTMLDivElement>(null);
 
   const editor = useCreateBlockNote();
 
@@ -296,20 +317,6 @@ function App() {
     };
   }, []);
 
-  // Close style panel when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (showStylePanel && stylePanelRef.current && !stylePanelRef.current.contains(e.target as Node)) {
-        const btn = document.getElementById("style-settings-btn");
-        if (btn && !btn.contains(e.target as Node)) {
-          setShowStylePanel(false);
-        }
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showStylePanel]);
-
   const updateBlockStyle = (key: keyof BlockStyles, value: number) => {
     setBlockStyles(prev => ({ ...prev, [key]: value }));
   };
@@ -331,73 +338,22 @@ function App() {
           </svg>
         </button>
         <span id="filename">{filename}</span>
-        <div className="toolbar-style-wrapper">
-          <button
-            id="style-settings-btn"
-            title="Style Settings"
-            onClick={() => setShowStylePanel(!showStylePanel)}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
-            </svg>
-          </button>
-          {showStylePanel && (
-            <div className="style-panel" ref={stylePanelRef}>
-              <div className="style-panel-title">Font Sizes</div>
-              <label>
-                <span>Heading 1</span>
-                <input
-                  type="number"
-                  value={blockStyles.h1Size}
-                  onChange={(e) => updateBlockStyle("h1Size", Number(e.target.value))}
-                  min="10"
-                  max="72"
-                />
-              </label>
-              <label>
-                <span>Heading 2</span>
-                <input
-                  type="number"
-                  value={blockStyles.h2Size}
-                  onChange={(e) => updateBlockStyle("h2Size", Number(e.target.value))}
-                  min="10"
-                  max="72"
-                />
-              </label>
-              <label>
-                <span>Heading 3</span>
-                <input
-                  type="number"
-                  value={blockStyles.h3Size}
-                  onChange={(e) => updateBlockStyle("h3Size", Number(e.target.value))}
-                  min="10"
-                  max="72"
-                />
-              </label>
-              <label>
-                <span>Paragraph</span>
-                <input
-                  type="number"
-                  value={blockStyles.paragraphSize}
-                  onChange={(e) => updateBlockStyle("paragraphSize", Number(e.target.value))}
-                  min="10"
-                  max="72"
-                />
-              </label>
-              <label>
-                <span>Code</span>
-                <input
-                  type="number"
-                  value={blockStyles.codeSize}
-                  onChange={(e) => updateBlockStyle("codeSize", Number(e.target.value))}
-                  min="10"
-                  max="72"
-                />
-              </label>
-            </div>
-          )}
-        </div>
+        {showEditor && (
+          <div className="inline-style-bar">
+            <div className="style-separator" />
+            {fileType === "markdown" ? (
+              <>
+                <StyleControl label="H1" value={blockStyles.h1Size} onChange={(v) => updateBlockStyle("h1Size", v)} />
+                <StyleControl label="H2" value={blockStyles.h2Size} onChange={(v) => updateBlockStyle("h2Size", v)} />
+                <StyleControl label="H3" value={blockStyles.h3Size} onChange={(v) => updateBlockStyle("h3Size", v)} />
+                <StyleControl label="P" value={blockStyles.paragraphSize} onChange={(v) => updateBlockStyle("paragraphSize", v)} />
+                <StyleControl label="Code" value={blockStyles.codeSize} onChange={(v) => updateBlockStyle("codeSize", v)} />
+              </>
+            ) : (
+              <StyleControl label="Code" value={blockStyles.codeSize} onChange={(v) => updateBlockStyle("codeSize", v)} />
+            )}
+          </div>
+        )}
         <div className="spacer"></div>
       </header>
 
