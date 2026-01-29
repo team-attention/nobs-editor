@@ -4,7 +4,7 @@ Lightweight doc viewer for macOS. Markdown, JSON, YAML, whatever. No bloated IDE
 
 ## Download
 
-**[Download Latest Release](https://github.com/eatnug/nobs-editor/releases/latest)**
+**[Download Latest Release](https://github.com/team-attention/nobs-editor/releases/latest)**
 
 ## How to Use
 
