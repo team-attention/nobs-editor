@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    nobs_viewer_lib::run()
+    nobs_editor_lib::run()
 }

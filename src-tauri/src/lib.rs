@@ -87,7 +87,7 @@ fn open_window_for_file(app: &AppHandle, path: &str, state: &tauri::State<OpenWi
 
     // Create new window
     if let Ok(window) = WebviewWindowBuilder::new(app, &label, url)
-        .title("nobs-viewer")
+        .title("nobs-editor")
         .inner_size(800.0, 600.0)
         .resizable(true)
         .visible(false)
@@ -129,7 +129,7 @@ fn process_urls(urls: Vec<url::Url>, state: &tauri::State<OpenWindows>, app_hand
     for url in urls {
         let path = if url.scheme() == "file" {
             url.to_file_path().ok().map(|p| p.to_string_lossy().to_string())
-        } else if url.scheme() == "nobsviewer" {
+        } else if url.scheme() == "nobseditor" {
             url.query_pairs()
                 .find(|(key, _)| key == "path")
                 .map(|(_, value)| value.to_string())

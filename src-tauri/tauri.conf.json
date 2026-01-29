@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "nobs-viewer",
+  "productName": "nobs-editor",
   "version": "0.3.2",
-  "identifier": "com.eatnug.nobsviewer",
+  "identifier": "com.eatnug.nobseditor",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -34,14 +34,14 @@
       {
         "ext": ["md", "markdown", "txt", "json", "yaml", "yml", "toml", "xml", "log", "ini", "cfg", "conf", "csv"],
         "name": "Text Document",
-        "role": "Viewer"
+        "role": "Editor"
       }
     ]
   },
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": ["nobsviewer"]
+        "schemes": ["nobseditor"]
       }
     }
   }

@@ -1,12 +1,12 @@
 [package]
-name = "nobs_viewer"
+name = "nobs_editor"
 version = "0.3.2"
 description = "A markdown file viewer that floats above fullscreen apps"
 authors = ["eatnug"]
 edition = "2021"
 
 [lib]
-name = "nobs_viewer_lib"
+name = "nobs_editor_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
