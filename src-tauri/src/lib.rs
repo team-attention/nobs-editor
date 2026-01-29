@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::{AppHandle, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
 
 // Track which file is open in which window (file_path -> window_label)
 struct OpenWindows(Mutex<HashMap<String, String>>);
@@ -67,6 +67,8 @@ fn open_window_for_file(app: &AppHandle, path: &str, state: &tauri::State<OpenWi
             #[cfg(target_os = "macos")]
             bring_window_to_front(&window);
             let _ = window.set_focus();
+            // Emit reload event so frontend reloads file content
+            let _ = window.emit("reload-file", ());
             return;
         } else {
             // Window was destroyed, remove stale entry

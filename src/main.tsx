@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 // Use native Rust commands for file I/O (bypass fs plugin scope restrictions)
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { listen } from "@tauri-apps/api/event";
 
 import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
@@ -247,6 +248,30 @@ function App() {
     if (filePath) {
       loadFile(decodeURIComponent(filePath));
     }
+  }, [loadFile]);
+
+  // Listen for reload-file event from Rust backend (when window is reused)
+  useEffect(() => {
+    let unlistenFn: (() => void) | null = null;
+
+    const setupReloadListener = async () => {
+      unlistenFn = await listen("reload-file", () => {
+        // Re-read file path from URL and reload
+        const params = new URLSearchParams(window.location.search);
+        const filePath = params.get("file");
+        if (filePath) {
+          loadFile(decodeURIComponent(filePath));
+        }
+      });
+    };
+
+    setupReloadListener();
+
+    return () => {
+      if (unlistenFn) {
+        unlistenFn();
+      }
+    };
   }, [loadFile]);
 
   // Hide window instead of closing (keep app running)
