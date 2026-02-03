@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{
-    menu::{Menu, MenuItem, MenuId, Submenu},
+    menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
     AppHandle, Emitter, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder,
 };
@@ -162,12 +162,6 @@ pub fn run() {
             // LSUIElement in Info.plist makes this a background app (no dock icon, no space switching)
             // Windows are created on demand
 
-            // Create macOS application menu with Quit item
-            let quit_item = MenuItem::with_id(app, "quit", "Quit Nobs Editor", true, Some("CmdOrCtrl+Q"))?;
-            let app_submenu = Submenu::with_id_and_items(app, "app_menu", "Nobs Editor", true, &[&quit_item])?;
-            let app_menu = Menu::with_items(app, &[&app_submenu])?;
-            app.set_menu(app_menu)?;
-
             // Create tray icon with quit menu (same quit functionality)
             let tray_quit_item = MenuItem::with_id(app, "tray_quit", "Quit Nobs Editor", true, None::<&str>)?;
             let tray_menu = Menu::with_items(app, &[&tray_quit_item])?;
@@ -206,12 +200,6 @@ pub fn run() {
 
             Ok(())
         })
-        .on_menu_event(|app, event| {
-            // Handle app menu events (macOS menu bar)
-            if event.id() == &MenuId::new("quit") {
-                app.exit(0);
-            }
-        })
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 
@@ -223,10 +211,8 @@ pub fn run() {
             }
             // Don't create window on Ready - only when file is opened
             RunEvent::Ready => {}
-            // Keep app running even when all windows are closed
-            RunEvent::ExitRequested { api, .. } => {
-                api.prevent_exit();
-            }
+            // Allow quit from menu - windows are hidden (not destroyed) on close,
+            // so ExitRequested only fires when user explicitly quits
             _ => {}
         }
     });
