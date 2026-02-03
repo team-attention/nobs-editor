@@ -214,7 +214,8 @@ html, body, #root {
 }
 
 /* Block-type font size customization - using !important to override BlockNote's var(--level) styles */
-#editor-container .bn-block-content[data-content-type="heading"][data-level="1"] {
+/* H1 in BlockNote has NO data-level attribute (level 1 is default), so we target headings without data-level */
+#editor-container .bn-block-content[data-content-type="heading"]:not([data-level]) {
   font-size: var(--h1-size, 28px) !important;
 }
 
@@ -228,6 +229,21 @@ html, body, #root {
 
 #editor-container .bn-block-content[data-content-type="paragraph"] {
   font-size: var(--p-size, 15px) !important;
+}
+
+/* Code block styling in BlockNote markdown editor */
+#editor-container .bn-block-content[data-content-type="codeBlock"] {
+  font-size: var(--code-size, 14px) !important;
+}
+
+#editor-container .bn-block-content[data-content-type="codeBlock"] pre {
+  font-size: inherit !important;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+}
+
+/* Bottom spacing for BlockNote editor content */
+#editor-container .bn-editor {
+  padding-bottom: 80px;
 }
 
 /* Dark mode support for BlockNote */

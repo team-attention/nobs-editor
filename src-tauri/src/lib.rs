@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::{
-    menu::{Menu, MenuItem},
+    menu::{Menu, MenuItem, MenuId, Submenu},
     tray::TrayIconBuilder,
     AppHandle, Emitter, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder,
 };
@@ -162,16 +162,22 @@ pub fn run() {
             // LSUIElement in Info.plist makes this a background app (no dock icon, no space switching)
             // Windows are created on demand
 
-            // Create tray icon with quit menu
-            let quit_item = MenuItem::with_id(app, "quit", "Quit Nobs Editor", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&quit_item])?;
+            // Create macOS application menu with Quit item
+            let quit_item = MenuItem::with_id(app, "quit", "Quit Nobs Editor", true, Some("CmdOrCtrl+Q"))?;
+            let app_submenu = Submenu::with_id_and_items(app, "app_menu", "Nobs Editor", true, &[&quit_item])?;
+            let app_menu = Menu::with_items(app, &[&app_submenu])?;
+            app.set_menu(app_menu)?;
+
+            // Create tray icon with quit menu (same quit functionality)
+            let tray_quit_item = MenuItem::with_id(app, "tray_quit", "Quit Nobs Editor", true, None::<&str>)?;
+            let tray_menu = Menu::with_items(app, &[&tray_quit_item])?;
 
             let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().ok_or("Default window icon not found")?.clone())
-                .menu(&menu)
+                .menu(&tray_menu)
                 .show_menu_on_left_click(true)
                 .on_menu_event(|app, event| {
-                    if event.id.as_ref() == "quit" {
+                    if event.id.as_ref() == "tray_quit" {
                         app.exit(0);
                     }
                 })
@@ -199,6 +205,12 @@ pub fn run() {
             }
 
             Ok(())
+        })
+        .on_menu_event(|app, event| {
+            // Handle app menu events (macOS menu bar)
+            if event.id() == &MenuId::new("quit") {
+                app.exit(0);
+            }
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
