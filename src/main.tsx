@@ -391,6 +391,28 @@ function App() {
     };
   }, []);
 
+  // Reload file when window regains focus (to pick up external changes)
+  useEffect(() => {
+    let unlistenFn: (() => void) | null = null;
+
+    const setupFocusHandler = async () => {
+      const appWindow = getCurrentWindow();
+      unlistenFn = await appWindow.onFocusChanged(({ payload: focused }) => {
+        if (focused && currentFilePath) {
+          loadFile(currentFilePath);
+        }
+      });
+    };
+
+    setupFocusHandler();
+
+    return () => {
+      if (unlistenFn) {
+        unlistenFn();
+      }
+    };
+  }, [currentFilePath, loadFile]);
+
   const updateBlockStyle = (key: keyof BlockStyles, value: number) => {
     setBlockStyles(prev => ({ ...prev, [key]: value }));
   };
