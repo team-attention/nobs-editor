@@ -8,6 +8,8 @@ import { listen } from "@tauri-apps/api/event";
 
 import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
+import { BlockNoteSchema, createCodeBlockSpec } from "@blocknote/core";
+import { codeBlockOptions } from "@blocknote/code-block";
 import "@blocknote/mantine/style.css";
 
 import { EditorView, lineNumbers, highlightActiveLineGutter, keymap } from "@codemirror/view";
@@ -190,14 +192,20 @@ function App() {
   const [showStylePanel, setShowStylePanel] = useState(false);
   const stylePanelRef = useRef<HTMLDivElement>(null);
   const [frontmatter, setFrontmatter] = useState<FrontmatterData>({});
-  const [showFrontmatter, setShowFrontmatter] = useState(true);
+  const [showFrontmatter, setShowFrontmatter] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQueryState] = useState("");
   const [searchMatchCount, setSearchMatchCount] = useState(0);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const editor = useCreateBlockNote();
+  const editor = useCreateBlockNote({
+    schema: BlockNoteSchema.create().extend({
+      blockSpecs: {
+        codeBlock: createCodeBlockSpec(codeBlockOptions),
+      },
+    }),
+  });
 
   // Mark editor as ready after first render
   useEffect(() => {
