@@ -1,0 +1,136 @@
+/* Empty state */
+#empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: var(--text-secondary);
+}
+
+#empty-state svg {
+  color: var(--text-secondary);
+}
+
+#empty-state p {
+  font-size: 16px;
+}
+
+#empty-state button,
+#empty-open-btn {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: white;
+  background: var(--accent-color);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+#empty-state button:hover {
+  opacity: 0.9;
+}
+
+/* BlockNote Editor Container */
+#editor-container {
+  height: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 20px 80px 20px;
+}
+
+/* BlockNote overrides for cleaner look */
+.bn-container {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* Block-type font size customization - using !important to override BlockNote's var(--level) styles */
+/* H1 in BlockNote has NO data-level attribute (level 1 is default), so we target headings without data-level */
+#editor-container .bn-block-content[data-content-type="heading"]:not([data-level]) {
+  font-size: var(--h1-size, 28px) !important;
+}
+
+#editor-container .bn-block-content[data-content-type="heading"][data-level="2"] {
+  font-size: var(--h2-size, 22px) !important;
+}
+
+#editor-container .bn-block-content[data-content-type="heading"][data-level="3"] {
+  font-size: var(--h3-size, 18px) !important;
+}
+
+#editor-container .bn-block-content[data-content-type="paragraph"] {
+  font-size: var(--p-size, 15px) !important;
+}
+
+/* Code block styling in BlockNote markdown editor */
+#editor-container .bn-block-content[data-content-type="codeBlock"] {
+  font-size: var(--code-size, 14px) !important;
+}
+
+#editor-container .bn-block-content[data-content-type="codeBlock"] pre {
+  font-size: inherit !important;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+}
+
+/* Bottom spacing for BlockNote editor content */
+#editor-container .bn-editor {
+  padding-bottom: 80px;
+}
+
+/* Dark mode support for BlockNote */
+@media (prefers-color-scheme: dark) {
+  .bn-container {
+    --bn-colors-editor-background: var(--bg-primary);
+    --bn-colors-editor-text: var(--text-primary);
+  }
+}
+
+/* CodeMirror Editor Container */
+#codemirror-container {
+  height: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+#codemirror-container .cm-editor {
+  height: 100%;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  font-size: var(--code-size, 14px);
+  line-height: 1.5;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#codemirror-container .cm-editor.cm-focused {
+  outline: none;
+}
+
+#codemirror-container .cm-scroller {
+  overflow: auto;
+}
+
+/* Light mode CodeMirror */
+#codemirror-container .cm-editor {
+  background: var(--bg-secondary);
+}
+
+#codemirror-container .cm-gutters {
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+#codemirror-container .cm-activeLineGutter {
+  background: var(--border-color);
+}
+
+/* Dark mode CodeMirror - oneDark theme handles most styling */
+@media (prefers-color-scheme: dark) {
+  #codemirror-container .cm-editor:not(.cm-focused) {
+    background: var(--bg-secondary);
+  }
+}
