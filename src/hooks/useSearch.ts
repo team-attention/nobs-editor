@@ -18,10 +18,9 @@ export function useSearch({ fileType, cmViewRef, editor }: UseSearchOptions) {
   const [searchMatchCount, setSearchMatchCount] = useState(0);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const performSearch = useCallback((query: string) => {
-    setSearchQueryState(query);
-
+  const executeSearch = useCallback((query: string) => {
     if (!query) {
       setSearchMatchCount(0);
       setCurrentMatchIndex(0);
@@ -68,6 +67,29 @@ export function useSearch({ fileType, cmViewRef, editor }: UseSearchOptions) {
     }
   }, [fileType, cmViewRef, editor]);
 
+  const performSearch = useCallback((query: string) => {
+    setSearchQueryState(query);
+
+    // Clear previous debounce timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Debounce the actual search execution
+    debounceTimerRef.current = setTimeout(() => {
+      executeSearch(query);
+    }, 200);
+  }, [executeSearch]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
   const navigateSearch = useCallback((direction: "next" | "prev") => {
     if (searchMatchCount === 0) return;
 
@@ -96,6 +118,9 @@ export function useSearch({ fileType, cmViewRef, editor }: UseSearchOptions) {
         setSearchQueryState("");
         setSearchMatchCount(0);
         setCurrentMatchIndex(0);
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+        }
         if (fileType === "code" && cmViewRef.current) {
           cmViewRef.current.dispatch({
             effects: setSearchQuery.of(new SearchQuery({ search: "" }))

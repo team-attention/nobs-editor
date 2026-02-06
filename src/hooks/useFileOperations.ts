@@ -28,6 +28,7 @@ export function useFileOperations({
   const [showEditor, setShowEditor] = useState(false);
   const [fileType, setFileType] = useState<FileType>("markdown");
   const [codeContent, setCodeContent] = useState("");
+  const [isDirty, setIsDirty] = useState(false);
   const pendingFile = useRef<string | null>(null);
 
   const loadFile = useCallback(async (path: string) => {
@@ -59,6 +60,7 @@ export function useFileOperations({
       }
 
       setShowEditor(true);
+      setIsDirty(false);
     } catch (error) {
       console.error("Failed to load file:", error);
       setFilename("Error loading file");
@@ -107,11 +109,16 @@ export function useFileOperations({
         const frontmatterStr = serializeFrontmatter(frontmatter);
         await invoke("write_file", { path: currentFilePath, content: frontmatterStr + markdown });
       }
+      setIsDirty(false);
       console.log("File saved");
     } catch (error) {
       console.error("Failed to save file:", error);
     }
   }, [currentFilePath, editor, fileType, cmViewRef, frontmatter]);
+
+  const markDirty = useCallback(() => {
+    setIsDirty(true);
+  }, []);
 
   return {
     filename,
@@ -119,8 +126,10 @@ export function useFileOperations({
     showEditor,
     fileType,
     codeContent,
+    isDirty,
     loadFile,
     openFile,
     saveFile,
+    markDirty,
   };
 }

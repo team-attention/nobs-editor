@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { BlockNoteView } from "@blocknote/mantine";
 import type { BlockNoteEditor } from "@blocknote/core";
 import { FrontmatterPanel } from "./FrontmatterPanel";
@@ -17,7 +18,7 @@ interface MarkdownEditorProps {
   onAddFrontmatter: () => void;
 }
 
-export function MarkdownEditor({
+export const MarkdownEditor = memo(function MarkdownEditor({
   editor,
   blockStyleVars,
   showFrontmatter,
@@ -44,4 +45,4 @@ export function MarkdownEditor({
       <BlockNoteView editor={editor} />
     </div>
   );
-}
+});

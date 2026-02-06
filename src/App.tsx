@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteSchema, createCodeBlockSpec } from "@blocknote/core";
 import { codeBlockOptions } from "@blocknote/code-block";
+import type { EditorView } from "@codemirror/view";
 import "@blocknote/mantine/style.css";
 
-import type { FileType } from "./types";
 import { useBlockStyles } from "./hooks/useBlockStyles";
 import { useFrontmatter } from "./hooks/useFrontmatter";
 import { useCodeMirror } from "./hooks/useCodeMirror";
@@ -19,15 +19,9 @@ import { CodeEditor } from "./components/CodeEditor";
 
 import "./styles/index.css";
 
-interface CodeState {
-  fileType: FileType;
-  showEditor: boolean;
-  filename: string;
-  codeContent: string;
-}
-
 export function App() {
   const [editorReady, setEditorReady] = useState(false);
+  const cmViewRef = useRef<EditorView | null>(null);
 
   // Initialize BlockNote editor
   const editor = useCreateBlockNote({
@@ -59,24 +53,13 @@ export function App() {
     hasFrontmatter,
   } = useFrontmatter();
 
-  // CodeMirror setup - needs fileType and showEditor from file operations
-  // We'll initialize these after useFileOperations, so we need to handle the dependency
-  const [codeState, setCodeState] = useState<CodeState>({ fileType: "markdown", showEditor: false, filename: "", codeContent: "" });
-
-  const { cmContainerRef, cmViewRef } = useCodeMirror({
-    fileType: codeState.fileType,
-    showEditor: codeState.showEditor,
-    filename: codeState.filename,
-    codeContent: codeState.codeContent,
-  });
-
   // File operations
   const {
     filename,
-    currentFilePath,
     showEditor,
     fileType,
     codeContent,
+    markDirty,
     loadFile,
     openFile,
     saveFile,
@@ -88,10 +71,23 @@ export function App() {
     frontmatter,
   });
 
-  // Sync code state for CodeMirror
+  // Mark dirty when BlockNote content changes
   useEffect(() => {
-    setCodeState({ fileType, showEditor, filename, codeContent });
-  }, [fileType, showEditor, filename, codeContent]);
+    if (!editorReady || fileType !== "markdown") return;
+    return editor.onChange(() => {
+      markDirty();
+    });
+  }, [editor, editorReady, fileType, markDirty]);
+
+  // CodeMirror setup - pass values directly from useFileOperations
+  const { cmContainerRef } = useCodeMirror({
+    fileType,
+    showEditor,
+    filename,
+    codeContent,
+    cmViewRef,
+    onDocChanged: markDirty,
+  });
 
   // Search functionality
   const {
@@ -105,9 +101,8 @@ export function App() {
     toggleSearch,
   } = useSearch({ fileType, cmViewRef, editor });
 
-  // Window events (keyboard shortcuts, close handler, focus reload)
+  // Window events (keyboard shortcuts, close handler)
   useWindowEvents({
-    currentFilePath,
     loadFile,
     openFile,
     saveFile,

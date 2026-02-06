@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 interface FrontmatterPanelProps {
   showFrontmatter: boolean;
   setShowFrontmatter: (show: boolean) => void;
@@ -9,7 +11,7 @@ interface FrontmatterPanelProps {
   onAdd: () => void;
 }
 
-export function FrontmatterPanel({
+export const FrontmatterPanel = memo(function FrontmatterPanel({
   showFrontmatter,
   setShowFrontmatter,
   frontmatterEntries,
@@ -80,4 +82,4 @@ export function FrontmatterPanel({
       )}
     </div>
   );
-}
+});

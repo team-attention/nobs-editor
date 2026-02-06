@@ -1,9 +1,8 @@
 import { useEffect } from "react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 interface UseWindowEventsOptions {
-  currentFilePath: string | null;
   loadFile: (path: string) => Promise<void>;
   openFile: () => Promise<void>;
   saveFile: () => Promise<void>;
@@ -12,7 +11,6 @@ interface UseWindowEventsOptions {
 }
 
 export function useWindowEvents({
-  currentFilePath,
   loadFile,
   openFile,
   saveFile,
@@ -73,28 +71,6 @@ export function useWindowEvents({
       }
     };
   }, []);
-
-  // Reload file when window regains focus (to pick up external changes)
-  useEffect(() => {
-    let unlistenFn: (() => void) | null = null;
-
-    const setupFocusHandler = async () => {
-      const appWindow = getCurrentWindow();
-      unlistenFn = await appWindow.onFocusChanged(({ payload: focused }) => {
-        if (focused && currentFilePath) {
-          loadFile(currentFilePath);
-        }
-      });
-    };
-
-    setupFocusHandler();
-
-    return () => {
-      if (unlistenFn) {
-        unlistenFn();
-      }
-    };
-  }, [currentFilePath, loadFile]);
 
   // Keyboard shortcuts
   useEffect(() => {

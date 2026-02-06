@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { BlockStyles, FileType } from "../types";
 
 interface StyleControlProps {
@@ -28,7 +29,7 @@ interface StyleControlsProps {
   onStyleChange: (key: keyof BlockStyles, value: number) => void;
 }
 
-export function StyleControls({ blockStyles, fileType, onStyleChange }: StyleControlsProps) {
+export const StyleControls = memo(function StyleControls({ blockStyles, fileType, onStyleChange }: StyleControlsProps) {
   return (
     <div className="inline-style-bar">
       <div className="style-separator" />
@@ -45,4 +46,4 @@ export function StyleControls({ blockStyles, fileType, onStyleChange }: StyleCon
       )}
     </div>
   );
-}
+});

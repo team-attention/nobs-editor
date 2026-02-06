@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 interface SearchBarProps {
   searchQuery: string;
   searchMatchCount: number;
@@ -8,7 +10,7 @@ interface SearchBarProps {
   onClose: () => void;
 }
 
-export function SearchBar({
+export const SearchBar = memo(function SearchBar({
   searchQuery,
   searchMatchCount,
   currentMatchIndex,
@@ -71,4 +73,4 @@ export function SearchBar({
       </button>
     </div>
   );
-}
+});

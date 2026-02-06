@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { BlockStyles, FileType } from "../types";
 import { SearchBar } from "./SearchBar";
 import { StyleControls } from "./StyleControls";
@@ -20,7 +21,7 @@ interface ToolbarProps {
   onToggleSearch: () => void;
 }
 
-export function Toolbar({
+export const Toolbar = memo(function Toolbar({
   filename,
   showEditor,
   fileType,
@@ -65,4 +66,4 @@ export function Toolbar({
       <div className="spacer"></div>
     </header>
   );
-}
+});
