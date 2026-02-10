@@ -1,6 +1,6 @@
 ---
 name: spets
-description: SDD workflow executor - orchestrator-controlled spec-driven development
+description: SDD workflow executor - orchestrator-controlled spec-driven development. Activate when the user wants to run spets, SDD workflows, or spec-driven development tasks.
 ---
 
 # Spets Executor
@@ -23,15 +23,11 @@ Then GOTO **Loop**.
 
 ### type="phase"
   - EXECUTE what `prompt` says
-  - RUN `onComplete` with your output as minified JSON argument
+  - RUN `onComplete` with your output as JSON argument
   - GOTO Loop
 
 ### type="checkpoint", checkpoint="clarify"
-  - FORMAT decisions as table for user:
-    | # | Decision | Context | Options |
-    |---|----------|---------|---------|
-    | d1 | ... | ... | 1. ... 2. ... |
-  - ASK user to pick an option for each decision
+  - ASK user each decision in `decisions[]`
   - RUN `onComplete` with `[{decisionId, selectedOptionId}, ...]`
   - GOTO Loop
 
