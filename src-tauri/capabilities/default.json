@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": ["main"],
+  "windows": ["main", "window_*"],
   "permissions": [
     "core:default",
     "core:window:allow-hide",
@@ -18,6 +18,11 @@
     {
       "identifier": "fs:allow-write-text-file",
       "allow": [{ "path": "**" }]
-    }
+    },
+    {
+      "identifier": "fs:allow-watch",
+      "allow": [{ "path": "**" }]
+    },
+    "fs:allow-unwatch"
   ]
 }

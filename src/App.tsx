@@ -10,6 +10,7 @@ import { useFrontmatter } from "./hooks/useFrontmatter";
 import { useCodeMirror } from "./hooks/useCodeMirror";
 import { useFileOperations } from "./hooks/useFileOperations";
 import { useSearch } from "./hooks/useSearch";
+import { useFileWatcher } from "./hooks/useFileWatcher";
 import { useWindowEvents } from "./hooks/useWindowEvents";
 
 import { Toolbar } from "./components/Toolbar";
@@ -56,9 +57,11 @@ export function App() {
   // File operations
   const {
     filename,
+    currentFilePath,
     showEditor,
     fileType,
     codeContent,
+    isDirty,
     markDirty,
     loadFile,
     openFile,
@@ -109,6 +112,9 @@ export function App() {
     showSearch,
     toggleSearch,
   });
+
+  // File watcher (auto-reload on external changes)
+  useFileWatcher({ currentFilePath, isDirty, loadFile });
 
   return (
     <div id="app">

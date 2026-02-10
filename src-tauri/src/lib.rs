@@ -21,6 +21,18 @@ fn write_file(path: String, content: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn stat_file(path: String) -> Result<u64, String> {
+    let metadata = std::fs::metadata(&path).map_err(|e| format!("Failed to stat {}: {}", path, e))?;
+    let modified = metadata
+        .modified()
+        .map_err(|e| format!("Failed to get mtime for {}: {}", path, e))?;
+    let duration = modified
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|e| format!("SystemTime error: {}", e))?;
+    Ok(duration.as_millis() as u64)
+}
+
+#[tauri::command]
 fn open_file(path: String, app: AppHandle, state: tauri::State<OpenWindows>) {
     open_window_for_file(&app, &path, &state);
 }
@@ -119,6 +131,9 @@ fn open_window_for_file(app: &AppHandle, path: &str, state: &tauri::State<OpenWi
                     api.prevent_close();
                     let _ = w.hide();
                 }
+                tauri::WindowEvent::Focused(true) => {
+                    let _ = w.emit("window-focused", ());
+                }
                 tauri::WindowEvent::Destroyed => {
                     // Clean up state when window is destroyed
                     let state = app_handle.state::<OpenWindows>();
@@ -157,7 +172,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(OpenWindows(Mutex::new(HashMap::new())))
-        .invoke_handler(tauri::generate_handler![read_file, write_file, open_file])
+        .invoke_handler(tauri::generate_handler![read_file, write_file, stat_file, open_file])
         .setup(|app| {
             // LSUIElement in Info.plist makes this a background app (no dock icon, no space switching)
             // Windows are created on demand
