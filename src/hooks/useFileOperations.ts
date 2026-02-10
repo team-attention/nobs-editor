@@ -29,6 +29,7 @@ export function useFileOperations({
   const [fileType, setFileType] = useState<FileType>("markdown");
   const [codeContent, setCodeContent] = useState("");
   const [isDirty, setIsDirty] = useState(false);
+  const isLoadingRef = useRef(false);
   const pendingFile = useRef<string | null>(null);
 
   const loadFile = useCallback(async (path: string) => {
@@ -37,6 +38,8 @@ export function useFileOperations({
       pendingFile.current = path;
       return;
     }
+
+    isLoadingRef.current = true;
 
     try {
       const content = await invoke<string>("read_file", { path });
@@ -61,7 +64,15 @@ export function useFileOperations({
 
       setShowEditor(true);
       setIsDirty(false);
+
+      // Delay clearing loading flag so editor onChange handlers
+      // (which fire asynchronously after content replacement) don't re-set isDirty
+      setTimeout(() => {
+        isLoadingRef.current = false;
+        setIsDirty(false);
+      }, 200);
     } catch (error) {
+      isLoadingRef.current = false;
       console.error("Failed to load file:", error);
       setFilename("Error loading file");
     }
@@ -117,7 +128,9 @@ export function useFileOperations({
   }, [currentFilePath, editor, fileType, cmViewRef, frontmatter]);
 
   const markDirty = useCallback(() => {
-    setIsDirty(true);
+    if (!isLoadingRef.current) {
+      setIsDirty(true);
+    }
   }, []);
 
   return {

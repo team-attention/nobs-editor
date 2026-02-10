@@ -1,7 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { watch } from "@tauri-apps/plugin-fs";
-import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 interface UseFileWatcherOptions {
   currentFilePath: string | null;
@@ -10,76 +10,114 @@ interface UseFileWatcherOptions {
 }
 
 export function useFileWatcher({ currentFilePath, isDirty, loadFile }: UseFileWatcherOptions) {
+  const [hasConflict, setHasConflict] = useState(false);
+
   const isDirtyRef = useRef(isDirty);
   isDirtyRef.current = isDirty;
 
-  const lastMtimeRef = useRef<number>(0);
+  const currentFilePathRef = useRef(currentFilePath);
+  currentFilePathRef.current = currentFilePath;
 
-  // File watcher: watch current file for external changes
+  const lastMtimeRef = useRef<number>(0);
+  const reloadingRef = useRef(false);
+
+  const checkAndReload = useCallback(async (path: string) => {
+    if (reloadingRef.current) return;
+    reloadingRef.current = true;
+    try {
+      const mtime = await invoke<number>("stat_file", { path });
+      if (mtime > lastMtimeRef.current) {
+        lastMtimeRef.current = mtime;
+        if (isDirtyRef.current) {
+          setHasConflict(true);
+        } else {
+          await loadFile(path);
+        }
+      }
+    } catch {
+      // Ignore stat errors
+    } finally {
+      reloadingRef.current = false;
+    }
+  }, [loadFile]);
+
+  // Reset conflict state when file changes or dirty state clears
+  useEffect(() => {
+    setHasConflict(false);
+  }, [currentFilePath]);
+
+  // Initialize mtime + file watcher
   useEffect(() => {
     if (!currentFilePath) return;
 
     let unwatchFn: (() => void) | null = null;
+    let cancelled = false;
 
-    const setupWatcher = async () => {
+    const setup = async () => {
       // Store initial mtime
       try {
         const mtime = await invoke<number>("stat_file", { path: currentFilePath });
         lastMtimeRef.current = mtime;
       } catch {
-        // Ignore stat errors
+        // Ignore
       }
 
-      unwatchFn = await watch(currentFilePath, async () => {
-        if (!isDirtyRef.current) {
-          try {
-            const mtime = await invoke<number>("stat_file", { path: currentFilePath });
-            lastMtimeRef.current = mtime;
-          } catch {
-            // Ignore stat errors
-          }
-          loadFile(currentFilePath);
-        }
-      }, { delayMs: 500 });
+      if (cancelled) return;
+
+      // Setup native file watcher
+      try {
+        unwatchFn = await watch(currentFilePath, () => {
+          checkAndReload(currentFilePath);
+        }, { delayMs: 500 });
+      } catch (error) {
+        console.error("File watcher setup failed:", error);
+      }
     };
 
-    setupWatcher();
+    setup();
 
     return () => {
-      if (unwatchFn) {
-        unwatchFn();
-      }
+      cancelled = true;
+      if (unwatchFn) unwatchFn();
     };
-  }, [currentFilePath, loadFile]);
+  }, [currentFilePath, checkAndReload]);
 
-  // Focus safety net: check mtime when window regains focus
+  // Focus-based check (safety net for when watcher misses events)
   useEffect(() => {
     if (!currentFilePath) return;
 
-    let unlistenFn: (() => void) | null = null;
+    const onFocus = () => checkAndReload(currentFilePath);
 
-    const setupFocusListener = async () => {
-      unlistenFn = await listen("window-focused", async () => {
-        if (isDirtyRef.current) return;
-
-        try {
-          const mtime = await invoke<number>("stat_file", { path: currentFilePath });
-          if (mtime > lastMtimeRef.current) {
-            lastMtimeRef.current = mtime;
-            loadFile(currentFilePath);
-          }
-        } catch {
-          // Ignore stat errors
-        }
-      });
+    const onVisibilityChange = () => {
+      if (!document.hidden) checkAndReload(currentFilePath);
     };
 
-    setupFocusListener();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    let unlistenTauri: (() => void) | null = null;
+    getCurrentWindow().listen("window-focused", onFocus).then((fn) => {
+      unlistenTauri = fn;
+    });
 
     return () => {
-      if (unlistenFn) {
-        unlistenFn();
-      }
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      if (unlistenTauri) unlistenTauri();
     };
-  }, [currentFilePath, loadFile]);
+  }, [currentFilePath, checkAndReload]);
+
+  const acceptExternal = useCallback(async () => {
+    const path = currentFilePathRef.current;
+    if (path) {
+      setHasConflict(false);
+      await loadFile(path);
+    }
+  }, [loadFile]);
+
+  const dismissConflict = useCallback(() => {
+    setHasConflict(false);
+  }, []);
+
+  return { hasConflict, acceptExternal, dismissConflict };
 }

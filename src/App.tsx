@@ -14,6 +14,7 @@ import { useFileWatcher } from "./hooks/useFileWatcher";
 import { useWindowEvents } from "./hooks/useWindowEvents";
 
 import { Toolbar } from "./components/Toolbar";
+import { ConflictBanner } from "./components/ConflictBanner";
 import { EmptyState } from "./components/EmptyState";
 import { MarkdownEditor } from "./components/MarkdownEditor";
 import { CodeEditor } from "./components/CodeEditor";
@@ -114,7 +115,7 @@ export function App() {
   });
 
   // File watcher (auto-reload on external changes)
-  useFileWatcher({ currentFilePath, isDirty, loadFile });
+  const { hasConflict, acceptExternal, dismissConflict } = useFileWatcher({ currentFilePath, isDirty, loadFile });
 
   return (
     <div id="app">
@@ -134,6 +135,10 @@ export function App() {
         onNavigateSearch={navigateSearch}
         onToggleSearch={toggleSearch}
       />
+
+      {hasConflict && (
+        <ConflictBanner onReload={acceptExternal} onKeep={dismissConflict} />
+      )}
 
       <main id="content">
         {!showEditor ? (

@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 interface UseWindowEventsOptions {
@@ -27,11 +26,13 @@ export function useWindowEvents({
   }, [loadFile]);
 
   // Listen for reload-file event from Rust backend (when window is reused)
+  // Must use getCurrentWindow().listen() to receive window-targeted events
   useEffect(() => {
     let unlistenFn: (() => void) | null = null;
 
     const setupReloadListener = async () => {
-      unlistenFn = await listen("reload-file", () => {
+      const appWindow = getCurrentWindow();
+      unlistenFn = await appWindow.listen("reload-file", () => {
         // Re-read file path from URL and reload
         const params = new URLSearchParams(window.location.search);
         const filePath = params.get("file");

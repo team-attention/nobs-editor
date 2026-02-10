@@ -190,6 +190,69 @@
   border-color: var(--accent-color);
 }
 
+/* Conflict Banner */
+.conflict-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: #fff3cd;
+  border-bottom: 1px solid #ffc107;
+  flex-shrink: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .conflict-banner {
+    background: rgba(255, 193, 7, 0.15);
+    border-bottom-color: rgba(255, 193, 7, 0.4);
+  }
+}
+
+.conflict-message {
+  font-size: 13px;
+  font-weight: 500;
+  color: #856404;
+}
+
+@media (prefers-color-scheme: dark) {
+  .conflict-message {
+    color: #ffc107;
+  }
+}
+
+.conflict-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.conflict-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.conflict-btn-reload {
+  background: var(--accent-color);
+  color: white;
+}
+
+.conflict-btn-reload:hover {
+  opacity: 0.9;
+}
+
+.conflict-btn-keep {
+  background: var(--border-color);
+  color: var(--text-primary);
+}
+
+.conflict-btn-keep:hover {
+  opacity: 0.8;
+}
+
 /* Utility */
 .hidden {
   display: none !important;
